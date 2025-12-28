@@ -1,0 +1,10 @@
+# 스트림릿 비밀번호 파일 (절대 올리면 안 됨!)
+.streamlit/secrets.toml
+
+# 파이썬이 만드는 임시 파일들
+__pycache__/
+*.pyc
+
+# 가상환경 폴더 (만약 있다면)
+venv/
+.env.streamlit/secrets.toml
