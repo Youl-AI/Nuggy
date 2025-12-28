@@ -10,7 +10,7 @@ st.caption("Powered by BRIA RMBG-2.0 via Hugging Face API")
 st.info("⚠️ 이 모델은 Hugging Face 사이트에서 [RMBG-2.0 라이선스 동의](https://huggingface.co/briaai/RMBG-2.0)를 해야 작동합니다.")
 
 # ✅ BRIA RMBG-2.0 모델 주소
-API_URL = "https://api-inference.huggingface.co/models/briaai/RMBG-2.0"
+API_URL = "https://router.huggingface.co/fal-ai/fal-ai/bria/background/remove?_subdomain=queue"
 
 # 토큰 가져오기
 try:
