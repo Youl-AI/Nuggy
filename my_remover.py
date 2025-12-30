@@ -56,15 +56,22 @@ class CustomBackgroundRemover:
         with torch.no_grad():
             preds = self.model(image_tensor)
             if isinstance(preds, tuple): preds = preds[0]
-            pred_mask = preds[0][0] # 배치 차원 제거
+            
+            # [수정 전] pred_mask = preds[0][0]  <-- 여기서 차원을 너무 많이 줄였습니다.
+            # [수정 후] 4D 텐서 (1, 1, 1024, 1024)를 그대로 유지합니다.
+            pred_mask_tensor = preds[0] 
 
         # 4. 마스크 후처리
-        # (1) 0~1 사이로 정규화 (혹시 모를 오차 방지)
-        pred_mask = torch.sigmoid(pred_mask) 
+        # (1) 0~1 사이로 정규화
+        pred_mask_tensor = torch.sigmoid(pred_mask_tensor) 
         
         # (2) 원본 크기로 다시 복구 (Bilinear Interpolation)
-        # 텐서 형태: (1, 1, H, W)가 되어야 interpolate 가능
-        pred_mask = F.interpolate(pred_mask.unsqueeze(0).unsqueeze(0), size=(h, w), mode='bilinear', align_corners=False)
+        # [수정 전] pred_mask = F.interpolate(pred_mask.unsqueeze(0).unsqueeze(0), size=(h, w), ...
+        # [수정 후] 4D 텐서를 바로 넣습니다. unsqueeze가 필요 없습니다!
+        pred_mask = F.interpolate(pred_mask_tensor, size=(h, w), mode='bilinear', align_corners=False)
+        
+        # (3) 결과 텐서를 NumPy 배열로 변환 (이제 필요없는 차원을 제거합니다)
+        # (1, 1, H_out, W_out) -> (H_out, W_out) 형태로 바뀝니다.
         pred_mask = pred_mask.squeeze().cpu().numpy()
 
         # 5. 배경 제거 합성 (RGBA 변환)
