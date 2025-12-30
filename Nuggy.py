@@ -65,7 +65,7 @@ if uploaded_file is not None:
                 
                 # 2. [핵심 변경] rembg.remove 대신 remover.process 사용
                 # 커스텀 클래스는 바이트 변환 필요 없이 PIL 이미지를 바로 받습니다.
-                result_image = remover.process(image)
+                result_image, _ = remover.process(image)
                 
                 # 소요 시간 계산
                 end_time = time.time()
