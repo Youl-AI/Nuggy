@@ -6,80 +6,78 @@ import numpy as np
 import os
 import sys
 
-# [중요] 모델 경로 설정 (학습 때와 동일하게)
-# 사용자의 폴더 구조에 맞춰 경로를 잡아줍니다.
+# ---------------------------------------------------------
+# 경로 설정 (models 폴더 위치 찾기)
+# ---------------------------------------------------------
 current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root_path = os.path.join(current_dir, 'DIS')
-if project_root_path not in sys.path:
-    sys.path.append(project_root_path)
+sys.path.append(current_dir)
 
 try:
     from models.isnet import ISNetDIS
 except ModuleNotFoundError:
-    print("❌ 에러: 'models' 폴더를 찾을 수 없습니다. 경로를 확인해주세요.")
+    sys.path.append(os.path.join(current_dir, 'models'))
+    from isnet import ISNetDIS
 
 class CustomBackgroundRemover:
     def __init__(self, model_path, device='cuda'):
         self.device = device if torch.cuda.is_available() else 'cpu'
-        print(f"⏳ 커스텀 모델 로딩 중... ({self.device})")
+        print(f"⚡ 커스텀 모델 로딩... Device: {self.device}")
         
-        # 모델 구조 불러오기
         self.model = ISNetDIS().to(self.device)
         
-        # 학습된 가중치(.pth) 로드
         if os.path.exists(model_path):
             state_dict = torch.load(model_path, map_location=self.device)
             self.model.load_state_dict(state_dict)
-            self.model.eval() # 평가 모드 전환
+            self.model.eval()
             print("✅ 모델 로드 완료!")
         else:
-            raise FileNotFoundError(f"모델 파일이 없습니다: {model_path}")
+            print(f"❌ 모델 파일 없음: {model_path}")
+            # 웹 환경에서는 멈추는게 나을 수 있음
+            # sys.exit() 
 
-        # 이미지 전처리 설정 (학습 때와 동일한 1024 사이즈)
+        # 학습 때와 동일한 전처리 (1024 사이즈)
         self.transform = transforms.Compose([
             transforms.Resize((1024, 1024)),
             transforms.ToTensor(),
         ])
 
     def process(self, original_image):
-        """
-        original_image: PIL Image 객체
-        return: 배경이 제거된 PIL Image (RGBA)
-        """
-        # 1. 원본 크기 저장
         w, h = original_image.size
         
-        # 2. 전처리 (Resize & Normalize)
+        # 1. 전처리
         image_tensor = self.transform(original_image.convert("RGB")).unsqueeze(0).to(self.device)
         
-        # 3. 추론 (Inference)
+        # 2. 추론
         with torch.no_grad():
             preds = self.model(image_tensor)
             if isinstance(preds, tuple): preds = preds[0]
-            
-            # [수정 전] pred_mask = preds[0][0]  <-- 여기서 차원을 너무 많이 줄였습니다.
-            # [수정 후] 4D 텐서 (1, 1, 1024, 1024)를 그대로 유지합니다.
+            # 4D 텐서 유지 (1, 1, 1024, 1024)
             pred_mask_tensor = preds[0] 
 
-        # 4. 마스크 후처리
-        # (1) 0~1 사이로 정규화
-        pred_mask_tensor = torch.sigmoid(pred_mask_tensor) 
-        
-        # (2) 원본 크기로 다시 복구 (Bilinear Interpolation)
-        # [수정 전] pred_mask = F.interpolate(pred_mask.unsqueeze(0).unsqueeze(0), size=(h, w), ...
-        # [수정 후] 4D 텐서를 바로 넣습니다. unsqueeze가 필요 없습니다!
-        pred_mask = F.interpolate(pred_mask_tensor, size=(h, w), mode='bilinear', align_corners=False)
-        
-        # (3) 결과 텐서를 NumPy 배열로 변환 (이제 필요없는 차원을 제거합니다)
-        # (1, 1, H_out, W_out) -> (H_out, W_out) 형태로 바뀝니다.
-        pred_mask = pred_mask.squeeze().cpu().numpy()
+        # 3. 후처리 시작
+        # (1) Sigmoid로 0~1 확률값 변환
+        pred_mask_tensor = torch.sigmoid(pred_mask_tensor)
 
-        # 5. 배경 제거 합성 (RGBA 변환)
-        # 마스크를 PIL 이미지로 변환
+        # (2) 원본 크기 복원 (Interpolate)
+        pred_mask = F.interpolate(pred_mask_tensor, size=(h, w), mode='bilinear', align_corners=False)
+        pred_mask = pred_mask.squeeze().cpu().numpy() # (H, W) 2D 배열로 변환
+
+        # =========================================================
+        # 💡 [핵심 수정] 유령 현상 해결! (확실하게 자르기)
+        # =========================================================
+        # 0.5를 기준으로 흰색(1)과 검은색(0)으로 딱 나눕니다.
+        # 이 부분이 없으면 가장자리가 흐릿해집니다.
+        pred_mask[pred_mask < 0.5] = 0 
+        pred_mask[pred_mask >= 0.5] = 1
+        # =========================================================
+
+        # 4. 이미지 합성
+        # 마스크를 이미지로 변환 (0/1 -> 0/255)
         mask_pil = Image.fromarray((pred_mask * 255).astype(np.uint8)).convert("L")
         
-        # 원본 이미지에 알파 채널(마스크) 적용
         result_image = original_image.convert("RGBA")
         result_image.putalpha(mask_pil)
         
         return result_image
+
+# (테스트 코드는 웹 실행 시 필요 없으므로 제거했습니다)
