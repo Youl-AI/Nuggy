@@ -31,8 +31,8 @@ def load_model():
     MODEL_PATH = "./checkpoints/best_finetuned_model.pth" 
     
     if not os.path.exists(MODEL_PATH):
-        # 만약 경로가 틀렸다면 DIS 폴더 쪽도 찾아보게 설정 (예비책)
-        MODEL_PATH = "../DIS/checkpoints/best_finetuned_model.pth"
+        st.error(f"❌ 모델 파일이 없습니다: {MODEL_PATH}")
+        st.stop()
     
     return CustomBackgroundRemover(MODEL_PATH)
 
