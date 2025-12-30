@@ -2,3 +2,6 @@ streamlit
 rembg
 pillow
 onnxruntime
+torch
+torchvision
+numpy
