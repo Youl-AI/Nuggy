@@ -4,7 +4,7 @@ import io
 import time
 import sys
 import os
-
+from my_remover import CustomBackgroundRemover
 
 # 이제 커스텀 모듈 임포트
 try:
