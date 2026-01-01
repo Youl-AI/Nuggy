@@ -107,7 +107,7 @@ Fine-tuning된 모델 가중치 파일은 용량 관계상 별도로 다운로�
 
 * **[👉 모델 다운로드 링크 (Google Drive)](https://drive.google.com/file/d/1GGXDU_AlSxJYHzwd_foywBfgTrAoQCKd/view?usp=sharing)**
 ### Step 4. Run Application
-메인 코드가 `Nuggy.py`로 변경되었습니다.
+메인 코드가 `Nuggy.py`를 실행합니다.
 ```bash
 streamlit run Nuggy.py
 ```
