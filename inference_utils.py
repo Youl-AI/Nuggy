@@ -5,18 +5,18 @@ import numpy as np
 import cv2
 
 # ---------------------------------------------------------
-# ⚙️ 설정 상수
+# ️ 설정 상수
 # ---------------------------------------------------------
 IMG_SIZE = 1024
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # ---------------------------------------------------------
-# 🛠️ 핵심 알고리즘 함수들
+# ️ 핵심 알고리즘 함수들
 # ---------------------------------------------------------
 
 def guided_filter(I, p, r, eps):
     """
-    OpenCV 가이디드 필터 (cv2.ximgproc 의존성 제거 버전)
+    OpenCV 가이디드 필터
     """
     ksize = (2 * r + 1, 2 * r + 1)
     mean_I = cv2.boxFilter(I, cv2.CV_32F, ksize)
@@ -38,7 +38,7 @@ def guided_filter(I, p, r, eps):
 
 def run_inference(model, image, cutoff, gamma, guided_r, guided_eps, min_area_ratio, use_tta=True):
     """
-    모델 추론부터 후처리(TTA, Guided Filter, Cleaning)까지 한 번에 수행하는 함수
+    모델 추론 및 후처리
     """
     orig_w, orig_h = image.size
     
@@ -68,7 +68,7 @@ def run_inference(model, image, cutoff, gamma, guided_r, guided_eps, min_area_ra
     if pred_mask.max() != pred_mask.min():
         pred_mask = (pred_mask - pred_mask.min()) / (pred_mask.max() - pred_mask.min())
 
-    # 2. Guided Filter (디테일 복구)
+    # 2. Guided Filter
     src_img_pil = image.resize((IMG_SIZE, IMG_SIZE)).convert("L")
     src_img = np.array(src_img_pil).astype(np.float32) / 255.0
     guidance_mask = pred_mask.astype(np.float32)
@@ -76,7 +76,7 @@ def run_inference(model, image, cutoff, gamma, guided_r, guided_eps, min_area_ra
     refined_mask = guided_filter(I=src_img, p=guidance_mask, r=guided_r, eps=guided_eps)
     pred_mask = refined_mask
 
-    # 3. Island Removal (먼지 청소)
+    # 3. Island Removal
     pred_mask[pred_mask < cutoff] = 0.0
     temp_mask = (pred_mask * 255).astype(np.uint8)
     contours, _ = cv2.findContours(temp_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

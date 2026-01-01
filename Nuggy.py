@@ -5,11 +5,11 @@ import sys
 import io
 from PIL import Image
 
-# 🔥 분리한 로직 파일 임포트
+#  로직 파일 임포트
 import inference_utils 
 
 # ---------------------------------------------------------
-# 🎨 [UI 설정] 페이지 기본 설정
+# 페이지 기본 설정
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="NuGgy Master - AI 배경 제거",
@@ -30,7 +30,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 🛠️ 함수 정의 (모델 로드 & 상태 초기화)
+# 함수 정의 (모델 로드 & 상태 초기화)
 # ---------------------------------------------------------
 MODEL_PATH = "./checkpoints/best_finetuned_model.pth"
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -60,7 +60,7 @@ def load_model():
     except Exception as e:
         return None
 
-# 👇 [새로운 기능] 파일이 바뀌면 기존 결과를 삭제하는 함수
+# 파일이 바뀌면 기존 결과를 삭제하는 함수
 def reset_results():
     if 'res_img' in st.session_state:
         del st.session_state['res_img']
@@ -68,7 +68,7 @@ def reset_results():
         del st.session_state['mask_img']
 
 # ---------------------------------------------------------
-# 🖥️ 메인 UI 레이아웃
+# 메인 UI 레이아웃
 # ---------------------------------------------------------
 st.markdown('<div class="main-title">🐰 NuGgy Master</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Fine-tuned IS-Net for High-Fidelity Matting</div>', unsafe_allow_html=True)
@@ -86,14 +86,14 @@ with st.sidebar:
     st.subheader("⚙️ 튜닝 옵션")
     with st.expander("전문가 설정", expanded=True):
         
-        # 👇 [수정됨] 최대값 0.9로 확장 완료!
+        # 노이즈 제거
         NOISE_CUTOFF = st.slider("노이즈 제거 (Cutoff)", 
                                  min_value=0.0, 
                                  max_value=0.9,  # <-- 0.5에서 0.9로 변경
                                  value=0.2, 
                                  step=0.01,
                                  help="값이 클수록 배경이 깨끗해지지만, 너무 높으면 피사체 일부가 지워질 수 있습니다.")
-        
+        # 선명도
         GAMMA = st.slider("선명도 (Gamma)", 
                           min_value=0.1, 
                           max_value=0.9, 
@@ -114,7 +114,7 @@ model = load_model()
 if model is None:
     st.error(f"🚨 모델을 찾을 수 없습니다: {MODEL_PATH}")
 else:
-    # 👇 [수정됨] on_change=reset_results 추가 (파일 바뀌면 결과 초기화)
+
     uploaded_file = st.file_uploader(
         "", 
         type=["jpg", "jpeg", "png", "jfif", "webp", "bmp", "tiff"],
@@ -152,7 +152,7 @@ else:
                     except Exception as e:
                         st.error(f"에러: {e}")
 
-            # 결과 표시 (세션 스테이트 활용)
+            # 결과 표시
             if 'res_img' in st.session_state:
                 final_res = st.session_state['res_img']
                 final_mask = st.session_state['mask_img']
