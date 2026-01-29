@@ -5,3 +5,4 @@ onnxruntime
 torch
 torchvision
 numpy
+opencv-python-headless
